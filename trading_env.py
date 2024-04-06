@@ -1,9 +1,11 @@
-import gym
+import gymnasium as gym
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 class TradingEnv(gym.Env):
+    metadata = {'render.modes': ['human']}
     def __init__(self, data_file, initial_balance=1000, max_position=1, transaction_cost_pct=0.01, reward_scaling=1e-4):
+        super(TradingEnv, self).__init__()
         self.data = pd.read_csv(data_file)
         # Preprocess data
         self.data = self.data.dropna() # Drop rows with missing values
@@ -16,8 +18,8 @@ class TradingEnv(gym.Env):
         self.data = self.data.astype({'Open': 'float32', 'High': 'float32', 'Low': 'float32', 'Close': 'float32', 'Volume': 'float32'})
 
         self.window_size = 30 
-        self.state_feature = ['Open', 'High', 'Low', 'Close', 'Volume']
-        self.state_shape = (self.window_size, len(self.state_feature))
+        self.state_features = ['Open', 'High', 'Low', 'Close', 'Volume']
+        self.state_shape = (self.window_size, len(self.state_features))
 
         self.action_space = gym.spaces.Discrete(3) # 3 possible actions: 0 for hold, 1 for buy, 2 for sell
         self.observation_space = gym.spaces.Box(low=0, high=1, shape=self.state_shape, dtype=np.float32)
@@ -28,42 +30,64 @@ class TradingEnv(gym.Env):
         self.holdings = 0 # Initial holdings in BTC
         self.transaction_cost_pct = transaction_cost_pct # Transaction cost percentage
         self.reward_scaling = reward_scaling # Scaling factor for reward calculation
+
+        # For rendering
+        self.buy_signals = []
+        self.sell_signals = []
+        self.prices = self.data['Close'].tolist()  # Prices for rendering
+        self.current_step = None
   
-    def reset(self):
+    def reset(self, seed=None):
         # Reset environment state
-        self.episode_start = np.random.randint(0, len(self.data) - self.state_shape[0])
         self.balance = self.initial_balance
         self.holdings = 0
-        self.next_state = self.get_state(self.episode_start)
-        return self.next_state
+        self.current_step = np.random.randint(0, len(self.data) - self.window_size)
+        self.buy_signals, self.sell_signals = [], []
+        self.episode_start = self.current_step 
+
+        # Seed the random number generator if a seed is provided
+        if seed is not None:
+            np.random.seed(seed)
+        return self.get_state(self.current_step), {}
 
     def step(self, action):
-        # Execute action and return next observation, reward, done, info
-        current_price = self.data.loc[self.episode_start + self.window_size - 1, 'Close']  
+        current_price = self.data.iloc[self.current_step + self.window_size - 1]['Close']
+        self.current_step += 1
 
         if action == 1:  # Buy
-            amount = self.balance * self.max_position // current_price
-            self.balance -= amount * current_price * (1 + self.transaction_cost_pct)
-            self.holdings += amount
+            self.buy_signals.append(self.current_step)
+            buy_amount = self.balance / current_price
+            self.holdings += buy_amount
+            self.balance -= buy_amount * current_price * (1 + self.transaction_cost_pct)
+
         elif action == 2:  # Sell
-            amount = self.holdings
-            self.balance += amount * current_price * (1 - self.transaction_cost_pct)
+            self.sell_signals.append(self.current_step)
+            sell_amount = self.holdings
+            self.balance += sell_amount * current_price * (1 - self.transaction_cost_pct)
             self.holdings = 0
 
-        self.episode_start += 1
-        next_state = self.get_state(self.episode_start)
-        reward = self.calculate_reward()
-        done = self.episode_start >= (len(self.data) - self.window_size)
-
+        next_state = self.get_state(self.current_step)
+        reward = self.calculate_reward()  # Call the calculate_reward
+        done = self.current_step >= len(self.data) - self.window_size
+        
         return next_state, reward * self.reward_scaling, done, {}
 
-    def get_state(self, start):
-        # Corrigez cette ligne pour utiliser `.loc` ou accéder d'abord par colonne puis par ligne
-        end = start + self.window_size - 1
-        state = self.data.loc[start:end, self.state_feature].values
-        # Normalisation par le maximum de chaque colonne pour la fenêtre donnée
-        state_normalized = state / state.max(axis=0)
-        return state_normalized
+    def get_state(self, step):
+        window_frame = self.data.iloc[step:step + self.window_size][self.state_features].values
+        normalized_frame = window_frame / np.max(window_frame, axis=0)
+        return normalized_frame
+
+    def render(self, mode='human'):
+        if mode == 'human':
+            buy_prices = [self.prices[i] for i in self.buy_signals]
+            sell_prices = [self.prices[i] for i in self.sell_signals]
+            dates = pd.to_datetime(self.data['Date']).iloc[self.current_step:self.current_step+self.window_size]
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=dates, y=self.prices[self.current_step:self.current_step+self.window_size], name='Price'))
+            fig.add_trace(go.Scatter(x=[dates[i] for i in self.buy_signals], y=buy_prices, mode='markers', name='Buy', marker=dict(color='green', size=10, symbol='triangle-up')))
+            fig.add_trace(go.Scatter(x=[dates[i] for i in self.sell_signals], y=sell_prices, mode='markers', name='Sell', marker=dict(color='red', size=10, symbol='triangle-down')))
+            fig.update_layout(title='Trading Chart', xaxis_title='Date', yaxis_title='Price')
+            fig.show()
     
     def calculate_reward(self):
         current_portfolio_value = self.balance + self.holdings * self.data.loc[self.episode_start + self.state_shape[0], 'Close']
@@ -98,23 +122,3 @@ class TradingEnv(gym.Env):
         # Discourage frequent trading
         reward -= 0.0001 * (1 if self.holdings != 0 else 0)
         return reward
-
-    
-    def render(self, mode='human'):
-        if mode == 'human':
-            # Show balance evolution
-            fig = go.Figure()
-            fig.add_trace(go.Candlestick(x=self.price_history.index, 
-                                         open=self.data['Open'], 
-                                         high=self.data['High'], 
-                                         low=self.data['Low'], 
-                                         close=self.data['Close']))
-            fig.add_trace(go.Scatter(x=self.price_history.index[self.buy_signals], 
-                                     y=self.price_history.index[self.buy_signals], 
-                                     mode='markers', 
-                                     marker=dict(symbol='triangle-up', color='green', size=10)))
-            fig.add_trace(go.Scatter(x=self.price_history.index[self.sell_signals], 
-                                     y=self.price_history.index[self.sell_signals], 
-                                     mode='markers', 
-                                     marker=dict(symbol='triangle-down', color='red', size=10)))
-            fig.show()
