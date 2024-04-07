@@ -1,5 +1,5 @@
 import gymnasium as gym
-from trading_env import TradingEnv
+from trading_env_old import TradingEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import EvalCallback
@@ -11,13 +11,6 @@ import pandas as pd
 def create_env():
     data_file_path = 'BTCUSDT_historical_data.csv'
     data = pd.read_csv(data_file_path)
-
-    # Check the output
-    #print(data.head())  # This should print the first few rows of your CSV
-    #print("Data file path:", data_file_path)  # This will print the path
-
-    # Directly test TradingEnv
-    #print("Creating TradingEnv directly with data_file_path")
     env = TradingEnv(data_file=data_file_path)
     #print("TradingEnv created successfully with data:", env.data.head())
 
