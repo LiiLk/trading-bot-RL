@@ -1,5 +1,5 @@
 gym
 pandas
 numpy
-tensorflow
+tensorflow==2.14.0
 matplotlib
