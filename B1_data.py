@@ -1,29 +1,94 @@
-from binance.client import Client
+import os
 import pandas as pd
+import numpy as np
+import yfinance as yf
+from sklearn.preprocessing import MinMaxScaler
 
-# Initialisation du client Binance
-client = Client()
+class FinancialDataForTrading:
+    def __init__(self, symbol='EURUSD=X', start_date='2010-01-01', end_date='None', csv_file_path='eurusd_data.csv'):
+        self.symbol = symbol
+        self.start_date = start_date
+        self.end_date = end_date
+        self.csv_file_path= csv_file_path
+        self.data = None
+        self.scaler = MinMaxScaler()
+        
+    def download_and_save_data(self):
+        #Download EUR/USD dataset from Yahoo Finance
+        ticker = yf.Ticker(self.symbol)
+        self.data = ticker.history(start=self.start_date, end=self.end_date)
+        # Reset index to have the right column
+        self.data = self.data.reset_index()
 
-# Définition des paramètres pour les données historiques
-symbol = 'BTCUSDT'
-interval = '15m'  # '1m' pour 1 minute; vous pouvez utiliser '5m' pour 5 minutes, '1h' pour 1 heure, etc.
-start_str = '2021-01-01'
-end_str = '2023-01-01'
+        # Rename the column with right format 
+        self.data.columns = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+        
+        #Save data into CSV file
+        self.data.to_csv(self.csv_file_path, index=False)
 
-# Récupération des chandeliers historiques
-candles = client.get_historical_klines(symbol, interval, start_str, end_str)
+        print(f"Données sauvegardées dans {self.csv_file_path}")
+        
+        return self.data
 
-# Création du DataFrame
-columns = ['Open Time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close Time', 'Quote Asset Volume', 'Number of Trades', 'Taker Buy Base Asset Volume', 'Taker Buy Quote Asset Volume', 'Ignore']
-df = pd.DataFrame(candles, columns=columns)
+    def load_data(self):
+        if os.path.exists(self.csv_file_path):
+            self.data = pd.read_csv(self.csv_file_path)
+            self.data['timestamp'] = pd.to_datetime(self.data['timestamp'])
+            print(f"Données chargées depuis {self.csv_file_path}")
+        else: 
+            print(f"Fichier {self.csv_file_path} non trouvé. Téléchargement des données...")
+            self.download_and_save_data()
+        return self.data
 
-# Conversion des timestamps en dates lisibles et ajustement des types de données
-df['Open Time'] = pd.to_datetime(df['Open Time'], unit='ms')
-df['Close Time'] = pd.to_datetime(df['Close Time'], unit='ms')
-for col in ['Open', 'High', 'Low', 'Close', 'Volume', 'Quote Asset Volume', 'Taker Buy Base Asset Volume', 'Taker Buy Quote Asset Volume']:
-    df[col] = pd.to_numeric(df[col], errors='coerce')
+    def preprocess_data(self):
+        if self.data is None:
+            raise ValueError("Les données n'ont pas été chargées. Appelez load_data() d'abord.")
+        # Returns calculation
+        self.data['returns'] = self.data['close'].pct_change()
+        # we measure the volatility in the range of 20 periods
+        self.data['volatility'] = self.data['returns'].rolling(windows=20).std
 
-# Sauvegarde des données dans un fichier CSV
-df.to_csv('BTCUSDT_historical_data.csv', index=False)
+        self.data['rsi'] = self.calculate_rsi(self.data['close'])
 
-print("Les données historiques ont été sauvegardées dans BTCUSDT_historical_data.csv")
+        # Normalize columns
+        numeric_columns = ['open', 'high', 'low', 'close', 'volume', 'returns', 'volatility', 'rsi']
+        self.data[numeric_columns] = self.scaler.fit_transform(self.data[numeric_columns])
+
+        # Deleting lines with NAN values
+        self.data = self.data.dropna()
+
+        return self.data
+    
+    @staticmethod
+    def calculate_rsi(prices, period=14):
+        delta = prices.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        rs = gain / loss
+        return 100 - (100 / (1+rs))
+
+    def get_training_data(self, sequence_length):
+        if self.data is None:
+            raise ValueError("Les données n'ont pas été prétraitées. Appelez preprocess_data() d'abord.")
+        
+        data = self.data[['open', 'high', 'low', 'close', 'volume', 'returns', 'volatility', 'rsi']].values
+
+        X = []
+        y = []
+
+        for i in range(len(data) - sequence_length):
+            X.append(data[i:(i+sequence_length)])
+            y.append(data[i+sequence_length, 3]) #Close price will be our target
+
+            return np.array(X), np.array(y)
+
+# main 
+if __name__ == "__main__":
+    data_handler = FinancialDataForTrading(symbol='EURUSD=X', start_date='2020-01-01', csv_file_path='eurusd_data.csv')
+    data = data_handler.load_data()
+    preprocessed_data = data_handler.preprocess_data()
+    X, y = data_handler.get_training_data(sequence_length=20)
+    
+    print(f"Shape of X: {X.shape}")
+    print(f"Shape of y: {y.shape}")
+    print(f"First few rows of preprocessed data:\n{preprocessed_data.head()}")

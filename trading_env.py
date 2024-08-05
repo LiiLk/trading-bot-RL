@@ -52,6 +52,8 @@ class BitcoinTradingEnv(gym.Env):
             
         return self._get_obs(), reward, done, info
     
+
+    
     def _get_obs(self):
         obs = np.array([
             self.df.iloc[self.current_step]['Open'],
