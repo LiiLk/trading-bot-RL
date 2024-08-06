@@ -1,3 +1,4 @@
 best_model/best_model.zip
 __pycache__/trading_env.cpython-311.pyc
 trading
+.venv
