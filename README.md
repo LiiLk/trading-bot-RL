@@ -8,7 +8,6 @@ This project aims to develop a trading bot that can generate a monthly return of
 
 ## Project Progress
 
-## Goal Progess
 [▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 15%
 
 ## Features
