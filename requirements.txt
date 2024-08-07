@@ -5,3 +5,4 @@ tensorflow==2.14.0
 matplotlib
 yfinance
 scikit-learn
+ta
