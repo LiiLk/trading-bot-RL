@@ -26,9 +26,14 @@ This project aims to develop a trading bot that can generate a monthly return of
 ## Installation
 
 1. Clone the repository:
+```bash
 git clone https://github.com/LiiLk/trading-bot-RL.git
+```
 
-2. Install dependencies:
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 ## Usage
 
 To run the data preprocessing and model training, you will need to: 
