@@ -4,13 +4,14 @@ import pandas as pd
 import numpy as np
 
 class TradingEnv(gym.Env):
-    def __init__(self, df, initial_balance=10000, trading_fee=0.001):
+    def __init__(self, df, initial_balance=10000, trading_fee=0.001, max_position=100):
         super(TradingEnv, self).__init__()
         self.df = df
         self.initial_balance = initial_balance
         self.trading_fee = trading_fee
+        self.max_position = max_position
         # Define action and observation space
-        self.action_space = spaces.Discrete(3)  # 0: Hold, 1: Long, 2: Short
+        self.action_space = spaces.Discrete(4)  # 0: Hold, 1: Long, 2: Short, 3: Close position
         # Observation space: [balance, position, current_price, other_features...]
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(3+ len(df.columns),), dtype=np.float32)
         
@@ -40,23 +41,34 @@ class TradingEnv(gym.Env):
             self.done = True
         
         # Calculate reward
-        reward = self._calculate_reward()
+        reward = self._calculate_reward(current_price)
 
-        return self._get_observation, reward, self.done, {}
+        return self._get_observation(), reward, self.done, {}
     
     def _execute_trade(self, action, current_price):
         # Execute trade
-        if action == 1:  # Long
-            long_amount = self.balance / current_price
-            cost = long_amount * current_price * (1+self.trading_fee)
-            if cost <= self.balance:
-                self.position += long_amount
-                self.balance -= cost
-        elif action == 2:  # Short
-            if self.position > 0:
-                short_amount = self.position * current_price * (1 - self.transaction_fee_percent)
-                self.balance += short_amount
+        if action == 1:  # Buy/Long
+            if self.position <= 0:  # If short or no position, close it first
+                self.balance += self.position * current_price * (1 - self.transaction_fee_percent)
                 self.position = 0
+            units_to_buy = min(self.max_position - self.position, 
+                               self.balance // (current_price * (1 + self.transaction_fee_percent)))
+            cost = units_to_buy * current_price * (1 + self.transaction_fee_percent)
+            self.balance -= cost
+            self.position += units_to_buy
+        elif action == 2:  # Sell/Short
+            if self.position >= 0:  # If long or no position, close it first
+                self.balance += self.position * current_price * (1 - self.transaction_fee_percent)
+                self.position = 0
+            units_to_short = min(self.max_position + self.position, 
+                                 self.balance // (current_price * (1 + self.transaction_fee_percent)))
+            proceeds = units_to_short * current_price * (1 - self.transaction_fee_percent)
+            self.balance += proceeds
+            self.position -= units_to_short
+
+        elif action == 3:  # Close Position
+            self.balance += self.position * current_price * (1 - self.transaction_fee_percent)
+            self.position = 0
     
     def _calculate_reward(self, current_price):
         # Calculate the new portfolio value
