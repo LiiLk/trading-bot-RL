@@ -3,63 +3,83 @@ from gym import spaces
 import pandas as pd
 import numpy as np
 
-class BitcoinTradingEnv(gym.Env):
-    def __init__(self, df, initial_balance=200, trading_fee=0.001, risk_factor=0.1):
-        super(BitcoinTradingEnv, self).__init__()
+class TradingEnv(gym.Env):
+    def __init__(self, df, initial_balance=10000, trading_fee=0.001):
+        super(TradingEnv, self).__init__()
         self.df = df
         self.initial_balance = initial_balance
         self.trading_fee = trading_fee
-        self.risk_factor = risk_factor
+        # Define action and observation space
         self.action_space = spaces.Discrete(3)  # 0: Hold, 1: Long, 2: Short
-        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(5,), dtype=np.float32)  # Open, High, Low, Close, Volume
-        self.max_steps = len(df)
+        # Observation space: [balance, position, current_price, other_features...]
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(3+ len(df.columns),), dtype=np.float32)
+        
+        self.reset()
         
     def reset(self):
+        # Reset the environment to its initial state
         self.balance = self.initial_balance
         self.position = 0
         self.current_step = 0
-        return self._get_obs()
+        self.done = False
+        self.portfolio_value = self.balance
+        return self._get_observation() 
     
     def step(self, action):
-        if self.current_step >= self.max_steps - 1:
-            self.current_step = 0  # Reset to the beginning of the data
+        if self.done:
+            return self._get_observation(), 0, True, {}
         
-        prev_close = self.df.iloc[self.current_step]['Close']
-        self.current_step += 1
-        current_close = self.df.iloc[self.current_step]['Close']
-        
-        if action == 1:  # Long
-            self.position = self.balance / current_close
-            self.balance -= self.position * current_close * (1 + self.trading_fee)
-        elif action == 2:  # Short
-            self.position = -self.balance / current_close
-            self.balance += abs(self.position) * current_close * (1 - self.trading_fee)
-        
-        self.balance += self.position * (current_close - prev_close)
-        
-        reward = (self.balance - self.initial_balance) / self.initial_balance
-        reward -= self.risk_factor * abs(self.position) * abs(current_close - prev_close) / prev_close
-        
-        if self.balance <= 0:
-            done = True
-        elif self.balance >= 1000000:  # 1 million target
-            done = True
-            reward += 1  # Additional reward for reaching target
-        else:
-            done = False
-            
-        info = {'balance': self.balance}
-            
-        return self._get_obs(), reward, done, info
-    
+        # Get current price and execute trade
+        current_price = self.df.iloc[self.current_step]['close']
+        self._execute_trade(action, current_price)
 
+        
+        
+        self.current_step += 1
+        if self.current_step >= len(self.df) - 1: 
+            self.done = True
+        
+        # Calculate reward
+        reward = self._calculate_reward()
+
+        return self._get_observation, reward, self.done, {}
     
-    def _get_obs(self):
-        obs = np.array([
-            self.df.iloc[self.current_step]['Open'],
-            self.df.iloc[self.current_step]['High'],
-            self.df.iloc[self.current_step]['Low'],
-            self.df.iloc[self.current_step]['Close'],
-            self.df.iloc[self.current_step]['Volume']
-        ], dtype=np.float32)
-        return obs
+    def _execute_trade(self, action, current_price):
+        # Execute trade
+        if action == 1:  # Long
+            long_amount = self.balance / current_price
+            cost = long_amount * current_price * (1+self.trading_fee)
+            if cost <= self.balance:
+                self.position += long_amount
+                self.balance -= cost
+        elif action == 2:  # Short
+            if self.position > 0:
+                short_amount = self.position * current_price * (1 - self.transaction_fee_percent)
+                self.balance += short_amount
+                self.position = 0
+    
+    def _calculate_reward(self, current_price):
+        # Calculate the new portfolio value
+        new_portfolio_value = self.balance + self.position * current_price
+
+        # Calculate the reward as the percentage change in portfolio value
+        reward = (new_portfolio_value - self.portfolio_value) / self.portfolio_value
+
+        # Update the portfolio value for the next step
+        self.portfolio_value = new_portfolio_value
+
+        return reward
+    
+    def _get_observation(self):
+        obs = self.df.iloc[self.current_step].values
+        return np.concatenate([[self.balance, self.position, self.df.iloc[self.current_step],['close']], obs])
+    
+    
+    
+    def render(self, mode='human'):
+        print(f'Step: {self.current_step}')
+        print(f'Balance: {self.balance}')
+        print(f'Position: {self.position}')
+        print(f'Current price: {self.df.iloc[self.current_step]["close"]}')
+        print(f'Portfolio value: {self.portfolio_value:.2f}')
+        print('--------------------')
