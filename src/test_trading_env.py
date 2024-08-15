@@ -24,9 +24,8 @@ data = data_handler.load_data()
 print(f'Raw data shape: {data.shape}\n')
 
 # Create the trading environments
-env_random = TradingEnv(data, leverage=2)
-env_sma = TradingEnv(data, leverage=2)
-
+env_random = TradingEnv(data, risk_per_trade=0.01, leverage=2)
+env_sma = TradingEnv(data, risk_per_trade=0.01, leverage=2)
 # Run simulations
 num_episodes = 5
 num_steps = 1000

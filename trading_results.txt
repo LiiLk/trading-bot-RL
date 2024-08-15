@@ -4,75 +4,75 @@ Raw data shape: (12390, 6)
 
 Running Random strategy:
 Episode 1:
-  Total Reward: -0.003166
-  Cumulative Return: -0.003166
-  Final Portfolio Value: 9962.90
-  Trades Executed: 485
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 Episode 2:
-  Total Reward: -0.003422
-  Cumulative Return: -0.006588
-  Final Portfolio Value: 9964.45
-  Trades Executed: 1001
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 Episode 3:
-  Total Reward: -0.003072
-  Cumulative Return: -0.009660
-  Final Portfolio Value: 9967.95
-  Trades Executed: 1496
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0  
   Number of steps: 1000
 
 Episode 4:
-  Total Reward: -0.003495
-  Cumulative Return: -0.013156
-  Final Portfolio Value: 9963.74
-  Trades Executed: 1997
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 Episode 5:
-  Total Reward: -0.003396
-  Cumulative Return: -0.016552
-  Final Portfolio Value: 9957.31
-  Trades Executed: 2523
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 
 Running Simple MA strategy:
 Episode 1:
-  Total Reward: -0.001047
-  Cumulative Return: -0.001047
-  Final Portfolio Value: 9987.84
-  Trades Executed: 981
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 Episode 2:
-  Total Reward: -0.001047
-  Cumulative Return: -0.002095
-  Final Portfolio Value: 9987.84
-  Trades Executed: 1962
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 Episode 3:
-  Total Reward: -0.001047
-  Cumulative Return: -0.003142
-  Final Portfolio Value: 9987.84
-  Trades Executed: 2943
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 Episode 4:
-  Total Reward: -0.001047
-  Cumulative Return: -0.004189
-  Final Portfolio Value: 9987.84
-  Trades Executed: 3924
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 Episode 5:
-  Total Reward: -0.001047
-  Cumulative Return: -0.005237
-  Final Portfolio Value: 9987.84
-  Trades Executed: 4905
+  Total Reward: 0.000000
+  Cumulative Return: 0.000000
+  Final Portfolio Value: 10000.00
+  Trades Executed: 0
   Number of steps: 1000
 
 Simulation complete.
