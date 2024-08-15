@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from trading_env import BitcoinTradingEnv
+from src.trading_env import BitcoinTradingEnv
 from collections import deque
 import random
 from keras.models import Sequential
