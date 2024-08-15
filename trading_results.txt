@@ -1,0 +1,78 @@
+Data loaded from eurusd_data.csv
+Raw data shape: (12390, 6)
+
+
+Running Random strategy:
+Episode 1:
+  Total Reward: -0.003166
+  Cumulative Return: -0.003166
+  Final Portfolio Value: 9962.90
+  Trades Executed: 485
+  Number of steps: 1000
+
+Episode 2:
+  Total Reward: -0.003422
+  Cumulative Return: -0.006588
+  Final Portfolio Value: 9964.45
+  Trades Executed: 1001
+  Number of steps: 1000
+
+Episode 3:
+  Total Reward: -0.003072
+  Cumulative Return: -0.009660
+  Final Portfolio Value: 9967.95
+  Trades Executed: 1496
+  Number of steps: 1000
+
+Episode 4:
+  Total Reward: -0.003495
+  Cumulative Return: -0.013156
+  Final Portfolio Value: 9963.74
+  Trades Executed: 1997
+  Number of steps: 1000
+
+Episode 5:
+  Total Reward: -0.003396
+  Cumulative Return: -0.016552
+  Final Portfolio Value: 9957.31
+  Trades Executed: 2523
+  Number of steps: 1000
+
+
+Running Simple MA strategy:
+Episode 1:
+  Total Reward: -0.001047
+  Cumulative Return: -0.001047
+  Final Portfolio Value: 9987.84
+  Trades Executed: 981
+  Number of steps: 1000
+
+Episode 2:
+  Total Reward: -0.001047
+  Cumulative Return: -0.002095
+  Final Portfolio Value: 9987.84
+  Trades Executed: 1962
+  Number of steps: 1000
+
+Episode 3:
+  Total Reward: -0.001047
+  Cumulative Return: -0.003142
+  Final Portfolio Value: 9987.84
+  Trades Executed: 2943
+  Number of steps: 1000
+
+Episode 4:
+  Total Reward: -0.001047
+  Cumulative Return: -0.004189
+  Final Portfolio Value: 9987.84
+  Trades Executed: 3924
+  Number of steps: 1000
+
+Episode 5:
+  Total Reward: -0.001047
+  Cumulative Return: -0.005237
+  Final Portfolio Value: 9987.84
+  Trades Executed: 4905
+  Number of steps: 1000
+
+Simulation complete.

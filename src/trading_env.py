@@ -2,14 +2,20 @@ import gym
 from gym import spaces
 import pandas as pd
 import numpy as np
-
+import logging
+# Set up logging 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 class TradingEnv(gym.Env):
-    def __init__(self, df, initial_balance=10000, transaction_fee_percent=0.001, max_position=100):
+    def __init__(self, df, initial_balance=10000, trading_fee=0.001, max_position=100, leverage=1):
         super(TradingEnv, self).__init__()
         self.df = df
         self.initial_balance = initial_balance
-        self.transaction_fee_percent = transaction_fee_percent
+        self.trading_fee = trading_fee
         self.max_position = max_position
+        self.leverage = leverage
+        self.cumulative_return = 0
+        self.trades_executed = 0
 
         # ATR parameters 
         self.atr_period = 14
@@ -39,11 +45,8 @@ class TradingEnv(gym.Env):
         
         # Get current price and execute trade
         current_price = self.df.iloc[self.current_step]['close']
-        # Check for stop loss
-        if self.position != 0:
-            if (self.position > 0 and current_price <= self.stop_loss_price) or \
-            (self.position < 0 and current_price >= self.stop_loss_price):
-                self._close_position(current_price)
+
+        old_portfolio_value = self.balance + self.position * current_price
 
         self._execute_trade(action, current_price)
         
@@ -55,39 +58,43 @@ class TradingEnv(gym.Env):
         if self.current_step >= len(self.df) - 1:
             self.done = True
 
-        reward = self._calculate_reward(current_price)
+        new_portfolio_value = self.balance + self.position * current_price
+        reward = (new_portfolio_value - old_portfolio_value) / old_portfolio_value
+        self.cumulative_return += reward
 
-        return self._get_observation(), reward, self.done, {}
+        logger.info(f"Step {self.current_step}: Action: {action}, Price: {current_price:.4f}, "
+                    f"Balance: {self.balance:.2f}, Position: {self.position:.2f}, "
+                    f"Reward: {reward:.6f}, Cumulative Return: {self.cumulative_return:.6f}")
+
+        return self._get_observation(), reward, self.done, {
+            'portfolio_value': new_portfolio_value,
+            'cumulative_return': self.cumulative_return,
+            'trades_executed': self.trades_executed
+        }
     
     def _execute_trade(self, action, current_price):
         # Execute trade
         if action == 1:  # Buy/Long
-            if self.position <= 0:  # If short or no position, close it first
-                self.balance += self.position * current_price * (1 - self.transaction_fee_percent)
-                self.position = 0
+            if self.position <= 0:
+                self._close_position(current_price)
             units_to_buy = min(self.max_position - self.position, 
-                               self.balance // (current_price * (1 + self.transaction_fee_percent)))
-            cost = units_to_buy * current_price * (1 + self.transaction_fee_percent)
+                               (self.balance * self.leverage) // (current_price * (1 + self.trading_fee)))
+            cost = units_to_buy * current_price * (1 + self.trading_fee)
             self.balance -= cost
             self.position += units_to_buy
-            if self.position > 0:
-                self.entry_price = current_price
-                self._set_dynamic_stop_loss(current_price)
+            self.trades_executed += 1
         elif action == 2:  # Sell/Short
             if self.position >= 0:
                 self._close_position(current_price)
             units_to_short = min(self.max_position + self.position, 
-                                self.balance // (current_price * (1 + self.transaction_fee_percent)))
-            proceeds = units_to_short * current_price * (1 - self.transaction_fee_percent)
+                                 (self.balance * self.leverage) // (current_price * (1 + self.trading_fee)))
+            proceeds = units_to_short * current_price * (1 - self.trading_fee)
             self.balance += proceeds
             self.position -= units_to_short
-            if self.position < 0:
-                self.entry_price = current_price
-                self._set_dynamic_stop_loss(current_price)
+            self.trades_executed += 1
 
         elif action == 3:  # Close Position
-            self.balance += self.position * current_price * (1 - self.transaction_fee_percent)
-            self.position = 0
+            self._close_position(current_price)
     
     def _set_dynamic_stop_loss(self, current_price):
         atr = self.df.iloc[self.current_step]['atr']
@@ -117,6 +124,8 @@ class TradingEnv(gym.Env):
         # Calculate the reward as the percentage change in portfolio value
         reward = (new_portfolio_value - self.portfolio_value) / self.portfolio_value
 
+        logger.info(f"Step {self.current_step}: Old portfolio value: {self.portfolio_value:.2f}, "
+                    f"New portfolio value: {new_portfolio_value:.2f}, Reward: {reward:.6f}")
         # Update the portfolio value for the next step
         self.portfolio_value = new_portfolio_value
 
