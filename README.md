@@ -15,7 +15,7 @@ This project aims to develop a trading bot that can generate a monthly return of
 - Data retrieval and preprocessing for EUR/USD hourly data
 - Technical indicator calculation and analysis
 - Reinforcement learning model for trading decisions
-- Risk management implementation adhering to FTMO rules
+- Risk management implementation
 - Adaptable for various forex pairs and indices
 
 ## Supported Instruments
