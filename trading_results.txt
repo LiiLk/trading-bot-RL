@@ -21,7 +21,7 @@ Episode 3:
   Total Reward: 0.000000
   Cumulative Return: 0.000000
   Final Portfolio Value: 10000.00
-  Trades Executed: 0  
+  Trades Executed: 0
   Number of steps: 1000
 
 Episode 4:
