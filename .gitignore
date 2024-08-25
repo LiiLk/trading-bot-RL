@@ -2,3 +2,9 @@ best_model/best_model.zip
 __pycache__/trading_env.cpython-311.pyc
 trading
 .venv
+backtest_results_*.csv
+dqn_model_*.pth
+eurusd_price.png
+returns_distribution.png
+temp_subset_data.csv
+
